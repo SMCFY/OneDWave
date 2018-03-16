@@ -38,6 +38,7 @@ private:
     float interpolate(float x, float *buffer);
     // Your private member variables go here...
     float value;
+    float freq;
     float delta;
     float audioBufferIndex;
     int paintBufferIndex;
@@ -45,7 +46,8 @@ private:
     int paintBufferLength;
     float U[3][1024];
     int mod;
-    Slider slider;
+    Slider waveSlider;
+    Slider freqSlider;
     HeapBlock<float> audioBuffer;
     HeapBlock<float> paintBuffer;
     

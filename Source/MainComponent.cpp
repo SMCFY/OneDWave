@@ -21,10 +21,20 @@ MainComponent::MainComponent()
     setAudioChannels (2, 2);
     
     // create a slider GUI for instigating wave propogation
-    addAndMakeVisible(slider);
-    slider.setSliderStyle(Slider::LinearBarVertical);
-    slider.setRange(-1.0, 1.0);
-    slider.addListener(this);
+    waveSlider.setSliderStyle(Slider::LinearBarVertical);
+    waveSlider.setRange(-1.0, 1.0);
+    waveSlider.addListener(this);
+    waveSlider.hideTextBox(true);
+    waveSlider.setTextBoxStyle(Slider::TextEntryBoxPosition::NoTextBox, true, 0, 0);
+    addAndMakeVisible(waveSlider);
+    // create a slider GUI for wave scanning frequency
+    freqSlider.setSliderStyle(Slider::LinearHorizontal);
+    freqSlider.setRange(10.0, 1000.0); // frequency range is 10 to 1000 Hz
+    freqSlider.setValue(440.0);
+    freqSlider.setTextValueSuffix(" Hz");
+    freqSlider.setTextBoxStyle(Slider::TextBoxLeft, false, 200, 20);
+    freqSlider.addListener(this);
+    addAndMakeVisible(freqSlider);
     
     // initialize the audio buffer
     for (int i = 0; i < audioBufferLength; i++)
@@ -117,13 +127,20 @@ void MainComponent::resized()
     // This is called when the MainContentComponent is resized.
     // If you add any child components, this is where you should
     // update their positions.
-    slider.setBounds(0, 50, 10, getHeight()-200);
+    waveSlider.setBounds(0, 50, 20, getHeight()-200);
+    freqSlider.setBounds(getWidth()/2.0f, 20, getWidth()/2.0f, 40);
 }
 
 void MainComponent::sliderValueChanged(juce::Slider *slider)
 {
-    value = slider->getValue();
-    delta = 1.0f;
+    const float value = slider->getValue();
+    if (slider == &waveSlider)
+        this->value = value;
+    else if (slider == &freqSlider)
+    {
+        freq = value;
+        delta = value/100.0f;
+    }
     if (paintBufferIndex<0)
         paintBufferIndex += paintBufferLength;
 }
