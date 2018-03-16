@@ -35,10 +35,11 @@ public:
 
 private:
     //==============================================================================
+    float interpolate(float x, float *buffer);
     // Your private member variables go here...
     float value;
     float delta;
-    int audioBufferIndex;
+    float audioBufferIndex;
     int paintBufferIndex;
     int audioBufferLength;
     int paintBufferLength;

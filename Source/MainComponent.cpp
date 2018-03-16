@@ -20,14 +20,18 @@ MainComponent::MainComponent()
     // specify the number of input and output channels that we want to open
     setAudioChannels (2, 2);
     
+    // create a slider GUI for instigating wave propogation
     addAndMakeVisible(slider);
     slider.setSliderStyle(Slider::LinearBarVertical);
     slider.setRange(-1.0, 1.0);
     slider.addListener(this);
+    
+    // initialize the audio buffer
     for (int i = 0; i < audioBufferLength; i++)
     {
-        audioBuffer[i] = std::sin(2*3.1415926535*i/audioBufferLength);
+        audioBuffer[i] = 0.0f;
     }
+    // initialize the paint buffer
     for (int i = 0; i < 1024; i++)
     {
         for (int j = 0; j < 3; j++)
@@ -36,6 +40,7 @@ MainComponent::MainComponent()
             paintBuffer[i] = 0.0f;
         }
     }
+    // finite-difference function will be calculated at a rate of 120 Hz
     startTimerHz(120);
 }
 
@@ -69,16 +74,14 @@ void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFil
     
     AudioBuffer<float> *buffer = bufferToFill.buffer;
     
-    for (int n = 0; n < buffer->getNumSamples(); n++, audioBufferIndex+=std::floor(delta))
+    for (int n = 0; n < buffer->getNumSamples(); n++, audioBufferIndex+=delta)
     {
-        if (audioBufferIndex >= paintBufferIndex)
-            audioBufferIndex -= paintBufferIndex;
-        //if (n < 1024)
-            //paintBuffer[n] = audioBuffer[audioBufferIndex];
+        if (audioBufferIndex >= paintBufferLength)
+            audioBufferIndex -= paintBufferLength;
         for (int ch = 0; ch < buffer->getNumChannels(); ch++)
         {
             float *buffch = buffer->getWritePointer(ch);
-            buffch[n] = 0.2f*audioBuffer[audioBufferIndex];
+            buffch[n] = 0.2f*interpolate(audioBufferIndex, audioBuffer);
         }
     }
     
@@ -99,10 +102,13 @@ void MainComponent::paint (Graphics& g)
     g.fillAll (getLookAndFeel().findColour (ResizableWindow::backgroundColourId));
 
     // You can add your drawing code here!
+    double length = paintBufferLength;
     for (int i = 0; i < 1023; i++)
     {
+        // 1D wave will be painted green
         g.setColour(juce::Colours::green);
-        g.drawLine(i*getWidth()/1024.0, 50+getWidth()/4+getWidth()/4*paintBuffer[i], (i+1)*getWidth()/1024.0, 50+(getWidth()/4.0f)+(getWidth()/4.0f)*paintBuffer[i+1], 2);
+        // waves are drawn depending on what's stored in the dynamically-changing paint buffer
+        g.drawLine(i*getWidth()/length, 50.0+getWidth()/4.0+getWidth()/4.0*paintBuffer[i], (i+1)*getWidth()/length, 50.0+(getWidth()/4.0)+(getWidth()/4.0)*paintBuffer[i+1], 2);
     }
 }
 
@@ -118,7 +124,6 @@ void MainComponent::sliderValueChanged(juce::Slider *slider)
 {
     value = slider->getValue();
     delta = 1.0f;
-    //paintBuffer[paintBufferIndex--] = value;
     if (paintBufferIndex<0)
         paintBufferIndex += paintBufferLength;
 }
@@ -130,7 +135,7 @@ void MainComponent::timerCallback()
     
     dx = 1;
     dt = 1.0/44100.0f;
-    v = 40000;
+    v = 40000.0f;
     c = v*(dt/dx);
     float U1, U2;
     for (int i = 0; i < 1024; i++)
@@ -157,6 +162,14 @@ void MainComponent::timerCallback()
         
     }
     mod++;
+    // draw the current waveform, every 40 Hz
     if (mod%3)
         repaint();
+}
+
+float MainComponent::interpolate(float x, float *buffer)
+{
+    int x0 = std::floor(x), x1 = x0+1;
+    float phi = x - x0;
+    return buffer[x0]*(1-phi)+buffer[x1]*(phi);
 }
